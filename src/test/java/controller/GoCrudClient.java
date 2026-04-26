@@ -5,6 +5,8 @@ import dto.EntityRequest;
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.config.HttpClientConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
@@ -13,9 +15,14 @@ public class GoCrudClient {
 
     private final RequestSpecification spec;
 
-    public GoCrudClient(String baseUrl) {
+    public GoCrudClient(String baseUrl, int connectionTimeout, int socketTimeout) {
         this.spec = new RequestSpecBuilder()
                 .setBaseUri(baseUrl)
+                .setConfig(RestAssuredConfig.config()
+                        .httpClient(HttpClientConfig.httpClientConfig()
+                                .setParam("http.connection.timeout", connectionTimeout)
+                                .setParam("http.socket.timeout", socketTimeout)
+                        ))
                 .setContentType(ContentType.JSON)
                 .build();
     }

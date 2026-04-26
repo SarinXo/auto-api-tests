@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static config.AppConfig.CONNECTION_TIMEOUT;
+import static config.AppConfig.SOCKET_TIMEOUT;
+import static config.AppConfig.URL;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static util.JsonParser.loadObject;
 
@@ -26,7 +29,7 @@ public class GoCrudServiceTest {
 
     @BeforeAll
     static void setup() {
-        client = new GoCrudClient("http://localhost:8080");
+        client = new GoCrudClient(URL, CONNECTION_TIMEOUT, SOCKET_TIMEOUT);
         createdEntityIds = new ArrayList<>();
     }
 
@@ -43,71 +46,50 @@ public class GoCrudServiceTest {
     @Feature("Создание сущности")
     @DisplayName("1. Тест создания сущности")
     void testCreateEntity() {
-        EntityRequest request = loadObject("request/req_create.json", EntityRequest.class);
+        EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
 
-        Response created = client.createEntity(request);
-        Integer createdId = Integer.valueOf(created.getBody().asString());
-        createdEntityIds.add(createdId);
+        Integer createdId = createAndTrackEntity(createRequest);
         Response getAfterCreate = client.getEntityById(createdId);
-        EntityResponse response = getAfterCreate.getBody().as(EntityResponse.class);
+        EntityResponse entityResponse = getAfterCreate.getBody().as(EntityResponse.class);
 
-        assertThat(created.getStatusCode())
-                .as("Ответ сервиса 200")
-                .isEqualTo(200);
         assertThat(getAfterCreate.getStatusCode())
                 .as("Entity сохранилась в сервисом")
                 .isEqualTo(200);
-        assertThat(response)
-                .as("Проверка, на то, что объект записался верно")
-                .usingRecursiveComparison()
-                .ignoringFields("id", "addition.id")
-                .isEqualTo(request);
+        assertEntityMatches(entityResponse, createRequest);
     }
 
     @Test
     @Feature("Чтение по Id")
     @DisplayName("2. Тест получения сущности по ID")
     void testGetEntityById() {
-        EntityRequest request = loadObject("request/req_create.json", EntityRequest.class);
+        EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
+        Integer createdId = createAndTrackEntity(createRequest);
 
-        Response created = client.createEntity(request);
-        Integer createdId = Integer.valueOf(created.getBody().asString());
-        createdEntityIds.add(createdId);
         Response getAfterCreate = client.getEntityById(createdId);
-        EntityResponse response = getAfterCreate.getBody().as(EntityResponse.class);
+        EntityResponse entityResponse = getAfterCreate.getBody().as(EntityResponse.class);
 
         assertThat(getAfterCreate.getStatusCode())
                 .as("Ответ сервиса 200")
                 .isEqualTo(200);
-        assertThat(response)
-                .as("Проверка, на то, что объект записался верно")
-                .usingRecursiveComparison()
-                .ignoringFields("id", "addition.id")
-                .isEqualTo(request);
+        assertEntityMatches(entityResponse, createRequest);
     }
 
     @Test
     @Feature("Update")
     @DisplayName("3. Тест обновления сущности")
     void testUpdateEntity() {
-        EntityRequest request = loadObject("request/req_create.json", EntityRequest.class);
-        EntityRequest update = loadObject("request/req_update.json", EntityRequest.class);
+        EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
+        EntityRequest updateRequest = loadObject("request/req_update.json", EntityRequest.class);
 
-        Response created = client.createEntity(request);
-        Integer createdId = Integer.valueOf(created.getBody().asString());
-        createdEntityIds.add(createdId);
-        Response updated = client.updateEntity(createdId, update);
-        Response getAfterCreate = client.getEntityById(createdId);
-        EntityResponse response = getAfterCreate.getBody().as(EntityResponse.class);
+        Integer createdId = createAndTrackEntity(createRequest);
+        Response updateResponse = client.updateEntity(createdId, updateRequest);
+        Response getAfterUpdate = client.getEntityById(createdId);
+        EntityResponse entityResponse = getAfterUpdate.getBody().as(EntityResponse.class);
 
-        assertThat(updated.getStatusCode())
+        assertThat(updateResponse.getStatusCode())
                 .as("Ответ сервиса 204")
                 .isEqualTo(204);
-        assertThat(response)
-                .as("Проверка, на то, что объект обновился")
-                .usingRecursiveComparison()
-                .ignoringFields("id", "addition.id")
-                .isEqualTo(update);
+        assertEntityMatches(entityResponse, updateRequest);
     }
 
     @Test
@@ -117,31 +99,27 @@ public class GoCrudServiceTest {
         EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
         EntityGetAllRequest getAllRequest = loadObject("request/req_get_all.json", EntityGetAllRequest.class);
 
-        Response created = client.createEntity(createRequest);
-        Integer createdId = Integer.valueOf(created.getBody().asString());
-        createdEntityIds.add(createdId);
-        Response created2 = client.createEntity(createRequest);
-        Integer createdId2 = Integer.valueOf(created2.getBody().asString());
-        createdEntityIds.add(createdId2);
+        Integer id1 = createAndTrackEntity(createRequest);
+        Integer id2 = createAndTrackEntity(createRequest);
 
         Response getAllResponse = client.getAllEntities(getAllRequest);
-        List<EntityResponse> response = getAllResponse.getBody()
+        List<EntityResponse> entityResponseList = getAllResponse.getBody()
                 .jsonPath()
                 .getList("entity", EntityResponse.class);
 
-        List<Integer> createdIds = response.stream()
+        List<Integer> createdIds = entityResponseList.stream()
                 .map(EntityResponse::getId)
                 .collect(Collectors.toList());
 
         assertThat(getAllResponse.getStatusCode())
                 .as("Ответ сервиса 200")
                 .isEqualTo(200);
-        assertThat(response.size())
+        assertThat(entityResponseList.size())
                 .as("Проверка, на то, что объекты попали в приложение")
                 .isEqualTo(2);
         AssertionsForInterfaceTypes
                 .assertThat(createdIds)
-                .containsExactlyInAnyOrderElementsOf(createdEntityIds);
+                .containsExactlyInAnyOrder(id1, id2);
 
     }
 
@@ -149,20 +127,33 @@ public class GoCrudServiceTest {
     @Feature("Удаление сущности")
     @DisplayName("5. Тест удаления сущности")
     void testDeleteEntity() {
-        EntityRequest request = loadObject("request/req_create.json", EntityRequest.class);
+        EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
 
-        Response created = client.createEntity(request);
-        Integer createdId = Integer.valueOf(created.getBody().asString());
-        createdEntityIds.add(createdId);
-        Response getAfterUpdate = client.deleteEntity(createdId);
-        Response response = client.getEntityById(createdId);
+        Integer createdId = createAndTrackEntity(createRequest);
+        Response deleteResponse = client.deleteEntity(createdId);
+        Response entityResponse = client.getEntityById(createdId);
 
-        assertThat(getAfterUpdate.getStatusCode())
+        assertThat(deleteResponse.getStatusCode())
                 .as("Ответ сервиса 204")
                 .isEqualTo(204);
-        assertThat(response.getStatusCode())
+        assertThat(entityResponse.getStatusCode())
                 .as("Сущность не найдена")
                 .isEqualTo(500);
+    }
+
+    private Integer createAndTrackEntity(EntityRequest request) {
+        Response response = client.createEntity(request);
+        Integer id = Integer.valueOf(response.getBody().asString());
+        createdEntityIds.add(id);
+        return id;
+    }
+
+    private void assertEntityMatches(EntityResponse entityResponse, EntityRequest expectedRequest) {
+        assertThat(entityResponse)
+                .as("Проверка соответствия полей объекта")
+                .usingRecursiveComparison()
+                .ignoringFields("id", "addition.id")
+                .isEqualTo(expectedRequest);
     }
 
 }
