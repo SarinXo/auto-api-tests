@@ -44,7 +44,7 @@ public class GoCrudServiceTest {
 
     @Test
     @Feature("Создание сущности")
-    @DisplayName("1. Тест создания сущности")
+    @DisplayName("Тест создания сущности")
     void testCreateEntity() {
         EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
 
@@ -60,7 +60,7 @@ public class GoCrudServiceTest {
 
     @Test
     @Feature("Чтение по Id")
-    @DisplayName("2. Тест получения сущности по ID")
+    @DisplayName("Тест получения сущности по ID")
     void testGetEntityById() {
         EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
         Integer createdId = createAndTrackEntity(createRequest);
@@ -76,7 +76,7 @@ public class GoCrudServiceTest {
 
     @Test
     @Feature("Update")
-    @DisplayName("3. Тест обновления сущности")
+    @DisplayName("Тест обновления сущности")
     void testUpdateEntity() {
         EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
         EntityRequest updateRequest = loadObject("request/req_update.json", EntityRequest.class);
@@ -94,7 +94,7 @@ public class GoCrudServiceTest {
 
     @Test
     @Feature("Чтение всех сущностей")
-    @DisplayName("4. Тест получения всех сущностей")
+    @DisplayName("Тест получения всех сущностей")
     void testGetAllEntities() {
         EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
         EntityGetAllRequest getAllRequest = loadObject("request/req_get_all.json", EntityGetAllRequest.class);
@@ -125,7 +125,7 @@ public class GoCrudServiceTest {
 
     @Test
     @Feature("Удаление сущности")
-    @DisplayName("5. Тест удаления сущности")
+    @DisplayName("Тест удаления сущности")
     void testDeleteEntity() {
         EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
 
