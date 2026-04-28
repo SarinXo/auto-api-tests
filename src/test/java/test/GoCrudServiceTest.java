@@ -46,50 +46,50 @@ public class GoCrudServiceTest {
     @Feature("Создание сущности")
     @DisplayName("Тест создания сущности")
     void testCreateEntity() {
-        EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
+        EntityRequest createEntityRequest = loadObject("request/req_create.json", EntityRequest.class);
 
-        Integer createdId = createAndTrackEntity(createRequest);
-        Response getAfterCreate = client.getEntityById(createdId);
-        EntityResponse entityResponse = getAfterCreate.getBody().as(EntityResponse.class);
+        Integer createdId = createAndTrackEntity(createEntityRequest);
+        Response response = client.getEntityById(createdId);
+        EntityResponse entityResponse = response.getBody().as(EntityResponse.class);
 
-        assertThat(getAfterCreate.getStatusCode())
+        assertThat(response.getStatusCode())
                 .as("Entity сохранилась в сервисом")
                 .isEqualTo(200);
-        assertEntityMatches(entityResponse, createRequest);
+        assertEntityMatches(entityResponse, createEntityRequest);
     }
 
     @Test
     @Feature("Чтение по Id")
     @DisplayName("Тест получения сущности по ID")
     void testGetEntityById() {
-        EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
-        Integer createdId = createAndTrackEntity(createRequest);
+        EntityRequest createEntityRequest = loadObject("request/req_create.json", EntityRequest.class);
+        Integer createdId = createAndTrackEntity(createEntityRequest);
 
-        Response getAfterCreate = client.getEntityById(createdId);
-        EntityResponse entityResponse = getAfterCreate.getBody().as(EntityResponse.class);
+        Response response = client.getEntityById(createdId);
+        EntityResponse entityResponse = response.getBody().as(EntityResponse.class);
 
-        assertThat(getAfterCreate.getStatusCode())
+        assertThat(response.getStatusCode())
                 .as("Ответ сервиса 200")
                 .isEqualTo(200);
-        assertEntityMatches(entityResponse, createRequest);
+        assertEntityMatches(entityResponse, createEntityRequest);
     }
 
     @Test
     @Feature("Update")
     @DisplayName("Тест обновления сущности")
     void testUpdateEntity() {
-        EntityRequest createRequest = loadObject("request/req_create.json", EntityRequest.class);
-        EntityRequest updateRequest = loadObject("request/req_update.json", EntityRequest.class);
+        EntityRequest createEntityRequest = loadObject("request/req_create.json", EntityRequest.class);
+        EntityRequest updateEntityRequest = loadObject("request/req_update.json", EntityRequest.class);
 
-        Integer createdId = createAndTrackEntity(createRequest);
-        Response updateResponse = client.updateEntity(createdId, updateRequest);
-        Response getAfterUpdate = client.getEntityById(createdId);
-        EntityResponse entityResponse = getAfterUpdate.getBody().as(EntityResponse.class);
+        Integer createdId = createAndTrackEntity(createEntityRequest);
+        Response updateResponse = client.updateEntity(createdId, updateEntityRequest);
+        Response updatedEntityResponse = client.getEntityById(createdId);
+        EntityResponse entityResponse = updatedEntityResponse.getBody().as(EntityResponse.class);
 
         assertThat(updateResponse.getStatusCode())
                 .as("Ответ сервиса 204")
                 .isEqualTo(204);
-        assertEntityMatches(entityResponse, updateRequest);
+        assertEntityMatches(entityResponse, updateEntityRequest);
     }
 
     @Test
@@ -148,12 +148,12 @@ public class GoCrudServiceTest {
         return id;
     }
 
-    private void assertEntityMatches(EntityResponse entityResponse, EntityRequest expectedRequest) {
-        assertThat(entityResponse)
+    private void assertEntityMatches(EntityResponse actualEntityResponse, EntityRequest expectedEntityRequest) {
+        assertThat(actualEntityResponse)
                 .as("Проверка соответствия полей объекта")
                 .usingRecursiveComparison()
                 .ignoringFields("id", "addition.id")
-                .isEqualTo(expectedRequest);
+                .isEqualTo(expectedEntityRequest);
     }
 
 }
