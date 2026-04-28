@@ -1,0 +1,4 @@
+app:
+  url: http://localhost:8080
+  connectionTimeout: 1000
+  socketTimeout: 3000
